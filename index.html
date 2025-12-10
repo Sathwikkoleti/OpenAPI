@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OData Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+</head>
+<style>
+    .hidden{
+        display: none
+    }
+</style>
+<body class="bg-dark text-light">
+    <div class="container  p-2">
+        <h1>OData Products Viewer</h1>
+        
+        <button id="loadBtn" class="btn-load btn-primary btn text-center">Load Data</button>
+        <div id="loader" class="loader hidden">Loading...</div>
+        <br>
+        <div id="tableContainer" class="hidden">
+            <table id="dataTable" class="table table-info pt-3">
+                <thead>
+                    <tr>
+                        <th>Select</th>
+                        <th>Product ID</th>
+                        <th>Product Name</th>
+                        <th>Unit Price</th>
+                        <th>Units In Stock</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="selectedRow" class="selected-info hidden">
+            <h3>Selected Product</h3>
+            <p id="selectedInfo"></p>
+            <button id="showBtn" class="btn-show">Show Data</button>
+        </div>
+    </div>
+
+    <script>
+        var products = [];
+        var selectedProduct = null;
+        var loadBtn = document.getElementById('loadBtn');
+        var showBtn = document.getElementById('showBtn');
+        var loader = document.getElementById('loader');
+        var tableContainer = document.getElementById('tableContainer');
+        var tableBody = document.getElementById('tableBody');
+        var selectedRow = document.getElementById('selectedRow');
+        var selectedInfo = document.getElementById('selectedInfo');
+
+        loadBtn.addEventListener('click', loadData);
+        
+
+        showBtn.addEventListener('click', show);
+      
+        function loadData() {
+
+            console.log('Load Data button was clicked!');
+            
+            loader.classList.remove('hidden');
+            
+            tableContainer.classList.add('hidden');
+            
+            selectedRow.classList.add('hidden');
+
+            fetch('/api/odata')
+                .then(function(response) {
+
+                    console.log('Server responded!');
+                    
+                    return response.json();
+                })
+                .then(function(data) {
+
+                    console.log('Data received:', data);
+                    
+                    products = data.value;
+                    displayTable(products);
+                    loader.classList.add('hidden');
+                    tableContainer.classList.remove('hidden');
+                })
+                .catch(function(error) {
+
+                    console.log('Error occurred:', error);
+                    loader.classList.add('hidden');
+                    alert('Error loading data: ' + error.message);
+                });
+        }
+        
+        function displayTable(data) {
+            console.log('Creating table with products');
+            
+
+            tableBody.innerHTML = '';
+            for (var i = 0; i < data.length; i++) {
+
+                var product = data[i];
+                
+                var row = document.createElement('tr');
+
+                row.innerHTML = 
+                    '<td><input type="radio" name="productSelect" value="' + i + '" /></td>' +
+                    '<td>' + product.ProductID + '</td>' +
+                    '<td>' + product.ProductName + '</td>' +
+                    '<td>$' + product.UnitPrice + '</td>' +
+                    '<td>' + product.UnitsInStock + '</td>';
+                var radio = row.querySelector('input[type="radio"]');
+                
+                (function(index) {
+
+                    radio.addEventListener('change', function() {
+                        selectRow(index);
+                    });
+                })(i);
+                tableBody.appendChild(row);
+            }
+        }
+
+        
+        function selectRow(index) {
+            console.log('User selected row:', index);
+            selectedProduct = products[index];
+            var text = 'Product: ' + selectedProduct.ProductName + ' (ID: ' + selectedProduct.ProductID + ')';
+            selectedInfo.textContent = text;
+            selectedRow.classList.remove('hidden');
+        }
+
+        function show() {
+
+            if (!selectedProduct) {
+
+                alert('Please select a product first!');
+                return;
+            }
+            var message = 'Product Details:\n\n';
+            for (var key in selectedProduct) {
+                if (selectedProduct.hasOwnProperty(key)) {
+                    var value = selectedProduct[key];
+                    message += key + ': ' + value + '\n';
+                }
+            }
+            alert(message);
+        }
+        console.log('Page loaded. Click "Load Data" to fetch products.');
+    </script>
+</body>
+</html>
